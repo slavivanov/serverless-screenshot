@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "dependencies": {
     "aws-sdk": "^2.6.4",
+    "aws-serverless-express": "^3.3.5",
     "dotenv": "^2.0.0",
+    "express": "^4.16.4",
     "serverless": "^1.0.0-rc.1",
     "serverless-plugin-stack-outputs": "^1.3.2",
     "serverless-plugin-stage-variables": "^1.6.6",
@@ -15,9 +17,11 @@
     "eslint-config-google": "^0.6.0",
     "eslint-plugin-import": "^1.15.0",
     "eslint-plugin-jsx-a11y": "^2.2.2",
-    "eslint-plugin-react": "^6.3.0"
+    "eslint-plugin-react": "^6.3.0",
+    "serverless-add-api-key": "^2.1.2"
   },
   "scripts": {
+    "deploy": "sls deploy -s production",
     "eslint": "./node_modules/eslint/bin/eslint.js handler.js"
   },
   "license": "MIT",
