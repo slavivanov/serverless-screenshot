@@ -5,8 +5,8 @@ const AWS = require('aws-sdk');
 const validUrl = require('valid-url');
 
 // overall constants
-const screenWidth = 1280;
-const screenHeight = 1024;
+// const screenWidth = 1280;
+// const screenHeight = 1024;
 
 // screenshot the given url
 // module.exports.take_screenshot = (event, context, cb) => {
@@ -117,17 +117,17 @@ module.exports.list_screenshots = (event, context, cb) => {
 module.exports.create_thumbnails = (event, context, cb) => {
   // define all the thumbnails that we want
   const widths = {
-    '320x240': `-crop ${screenWidth}x${screenHeight}+0x0 -thumbnail 320x240`,
-    '640x480': `-crop ${screenWidth}x${screenHeight}+0x0 -thumbnail 640x480`,
-    '800x600': `-crop ${screenWidth}x${screenHeight}+0x0 -thumbnail 800x600`,
-    '1024x768': `-crop ${screenWidth}x${screenHeight}+0x0 -thumbnail 1024x768`,
-    100: '-thumbnail 100x',
+    // '320x240': `-crop ${screenWidth}x${screenHeight}+0x0 -thumbnail 320x240`,
+    // '640x480': `-crop ${screenWidth}x${screenHeight}+0x0 -thumbnail 640x480`,
+    // '800x600': `-crop ${screenWidth}x${screenHeight}+0x0 -thumbnail 800x600`,
+    // '1024x768': `-crop ${screenWidth}x${screenHeight}+0x0 -thumbnail 1024x768`,
+    // 100: '-thumbnail 100x',
     200: '-thumbnail 200x',
     320: '-thumbnail 320x',
-    400: '-thumbnail 400x',
-    640: '-thumbnail 640x',
-    800: '-thumbnail 800x',
-    1024: '-thumbnail 1024x',
+    // 400: '-thumbnail 400x',
+    // 640: '-thumbnail 640x',
+    // 800: '-thumbnail 800x',
+    // 1024: '-thumbnail 1024x',
   };
   const record = event.Records[0];
 
