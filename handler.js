@@ -9,69 +9,68 @@ const screenWidth = 1280;
 const screenHeight = 1024;
 
 // screenshot the given url
-module.exports.take_screenshot = (event, context, cb) => {
-  const targetUrl = event.query.url;
-  const timeout = event.stageVariables.screenshotTimeout;
+// module.exports.take_screenshot = (event, context, cb) => {
+//   const targetUrl = event.queryStringParameters.url;
+//   const timeout = process.env.SCREENSHOT_TIMEOUT;
 
-  // check if the given url is valid
-  if (!validUrl.isUri(targetUrl)) {
-    cb(`422, please provide a valid url, not: ${targetUrl}`);
-    return false;
-  }
+//   // check if the given url is valid
+//   if (!validUrl.isUri(targetUrl)) {
+//     cb(`422, please provide a valid url, not: ${targetUrl}`);
+//     return false;
+//   }
 
-  const targetBucket = event.stageVariables.bucketName;
-  const targetHash = crypto.createHash('md5').update(targetUrl).digest('hex');
-  const targetFilename = `${targetHash}/original.png`;
-  console.log(`Snapshotting ${targetUrl} to s3://${targetBucket}/${targetFilename}`);
+//   const targetBucket = event.stageVariables.bucketName;
+//   const targetHash = crypto.createHash('md5').update(targetUrl).digest('hex');
+//   const targetFilename = `${targetHash}/original.png`;
+//   console.log(`Snapshotting ${targetUrl} to s3://${targetBucket}/${targetFilename}`);
 
-  // build the cmd for phantom to render the url
-  const cmd = `./phantomjs/phantomjs_linux-x86_64 --debug=yes --ignore-ssl-errors=true ./phantomjs/screenshot.js ${targetUrl} /tmp/${targetHash}.png ${screenWidth} ${screenHeight} ${timeout}`; // eslint-disable-line max-len
-  // const cmd =`./phantomjs/phantomjs_osx          --debug=yes --ignore-ssl-errors=true ./phantomjs/screenshot.js ${targetUrl} /tmp/${targetHash}.png ${screenWidth} ${screenHeight} ${timeout}`;
-  console.log(cmd);
+//   // build the cmd for phantom to render the url
+//   const cmd = `./phantomjs/phantomjs_linux-x86_64 --debug=yes --ignore-ssl-errors=true ./phantomjs/screenshot.js ${targetUrl} /tmp/${targetHash}.png ${screenWidth} ${screenHeight} ${timeout}`; // eslint-disable-line max-len
+//   // const cmd =`./phantomjs/phantomjs_osx          --debug=yes --ignore-ssl-errors=true ./phantomjs/screenshot.js ${targetUrl} /tmp/${targetHash}.png ${screenWidth} ${screenHeight} ${timeout}`;
+//   console.log(cmd);
 
-  // run the phantomjs command
-  exec(cmd, (error, stdout, stderr) => {
-    if (error) {
-      // the command failed (non-zero), fail the entire call
-      console.warn(`exec error: ${error}`, stdout, stderr);
-      cb(`422, please try again ${error}`);
-    } else {
-      // snapshotting succeeded, let's upload to S3
-      // read the file into buffer (perhaps make this async?)
-      const fileBuffer = fs.readFileSync(`/tmp/${targetHash}.png`);
+//   // run the phantomjs command
+//   exec(cmd, (error, stdout, stderr) => {
+//     if (error) {
+//       // the command failed (non-zero), fail the entire call
+//       console.warn(`exec error: ${error}`, stdout, stderr);
+//       cb(`422, please try again ${error}`);
+//     } else {
+//       // snapshotting succeeded, let's upload to S3
+//       // read the file into buffer (perhaps make this async?)
+//       const fileBuffer = fs.readFileSync(`/tmp/${targetHash}.png`);
 
-      // upload the file
-      const s3 = new AWS.S3();
-      s3.putObject({
-        ACL: 'public-read',
-        Key: targetFilename,
-        Body: fileBuffer,
-        Bucket: targetBucket,
-        ContentType: 'image/png',
-      }, (err) => {
-        if (err) {
-          console.warn(err);
-          cb(err);
-        } else {
-          // console.info(stderr);
-          // console.info(stdout);
-          cb(null, {
-            hash: targetHash,
-            key: `${targetFilename}`,
-            bucket: targetBucket,
-            url: `${event.stageVariables.endpoint}${targetFilename}`,
-          });
-        }
-        return;
-      });
-    }
-  });
-};
-
+//       // upload the file
+//       const s3 = new AWS.S3();
+//       s3.putObject({
+//         ACL: 'public-read',
+//         Key: targetFilename,
+//         Body: fileBuffer,
+//         Bucket: targetBucket,
+//         ContentType: 'image/png',
+//       }, (err) => {
+//         if (err) {
+//           console.warn(err);
+//           cb(err);
+//         } else {
+//           // console.info(stderr);
+//           // console.info(stdout);
+//           cb(null, {
+//             hash: targetHash,
+//             key: `${targetFilename}`,
+//             bucket: targetBucket,
+//             url: `${event.stageVariables.endpoint}${targetFilename}`,
+//           });
+//         }
+//         return;
+//       });
+//     }
+//   });
+// };
 
 // gives a list of urls for the given snapshotted url
 module.exports.list_screenshots = (event, context, cb) => {
-  const targetUrl = event.query.url;
+  const targetUrl = event.queryStringParameters.url;
 
   // check if the given url is valid
   if (!validUrl.isUri(targetUrl)) {
@@ -79,30 +78,40 @@ module.exports.list_screenshots = (event, context, cb) => {
     return false;
   }
 
-  const targetHash = crypto.createHash('md5').update(targetUrl).digest('hex');
-  const targetBucket = event.stageVariables.bucketName;
+  const targetHash = crypto
+    .createHash('md5')
+    .update(targetUrl)
+    .digest('hex');
+  const targetBucket = 'encharge-site-screenshot-production'; // event.stageVariables.bucketName;
   const targetPath = `${targetHash}/`;
 
   const s3 = new AWS.S3();
-  s3.listObjects({
-    Bucket: targetBucket,
-    Prefix: targetPath,
-    EncodingType: 'url',
-  }, (err, data) => {
-    if (err) {
-      cb(err);
-    } else {
-      const urls = {};
-      // for each key, get the image width and add it to the output object
-      data.Contents.forEach((content) => {
-        const parts = content.Key.split('/');
-        const size = parts.pop().split('.')[0];
-        urls[size] = `${event.stageVariables.endpoint}${content.Key}`;
-      });
-      cb(null, urls);
+  s3.listObjects(
+    {
+      Bucket: targetBucket,
+      Prefix: targetPath,
+      EncodingType: 'url',
+    },
+    (err, data) => {
+      if (err) {
+        cb(err);
+      } else {
+        const urls = {};
+        // for each key, get the image width and add it to the output object
+        data.Contents.forEach((content) => {
+          const parts = content.Key.split('/');
+          const size = parts.pop().split('.')[0];
+          urls[size] = `${event.stageVariables.endpoint}${content.Key}`;
+        });
+        const response = {
+          statusCode: 200,
+          body: JSON.stringify(urls),
+        };
+        cb(null, response);
+      }
+      return;
     }
-    return;
-  });
+  );
 };
 
 module.exports.create_thumbnails = (event, context, cb) => {
@@ -137,10 +146,12 @@ module.exports.create_thumbnails = (event, context, cb) => {
   const s3 = new AWS.S3();
   const sourcePath = '/tmp/original.png';
   const targetStream = fs.createWriteStream(sourcePath);
-  const fileStream = s3.getObject({
-    Bucket: record.s3.bucket.name,
-    Key: record.s3.object.key,
-  }).createReadStream();
+  const fileStream = s3
+    .getObject({
+      Bucket: record.s3.bucket.name,
+      Key: record.s3.object.key,
+    })
+    .createReadStream();
   fileStream.pipe(targetStream);
 
   // when file is downloaded, start processing
@@ -158,22 +169,25 @@ module.exports.create_thumbnails = (event, context, cb) => {
         } else {
           // resize was succesfull, upload the file
           console.info(`Resize to ${size} OK`);
-          var fileBuffer = fs.readFileSync(`/tmp/${hash}-${size}.png`);
-          s3.putObject({
+          const fileBuffer = fs.readFileSync(`/tmp/${hash}-${size}.png`);
+          s3.putObject(
+            {
               ACL: 'public-read',
               Key: `${prefix}/${size}.png`,
               Body: fileBuffer,
               Bucket: record.s3.bucket.name,
-              ContentType: 'image/png'
-          }, function(err, data){
-            if(err) {
-              console.warn(err);
-            } else {
-              console.info(`${size} uploaded`)
+              ContentType: 'image/png',
+            },
+            (err, data) => {
+              if (err) {
+                console.warn(err);
+              } else {
+                console.info(`${size} uploaded`);
+              }
             }
-          });
+          );
         }
-      })
+      });
     });
   });
 };

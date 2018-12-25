@@ -2,24 +2,32 @@ service: lambda-screenshots
 
 custom:
   # change this, so it's unique for your setup
-  bucket_name: ${opt:stage,self:provider.stage}-${env:USER}-screenshots
+  bucket_name: encharge-site-screenshot-${opt:stage,self:provider.stage}
 
   stageVariables:
     bucketName: ${self:custom.bucket_name}
-    endpoint: {"Fn::Join": ["", ["https://", { "Fn::GetAtt": "CloudFrontEndpoint.DomainName" }, "/"]]}
-    # timeout for phantomjs
-    screenshotTimeout: 3000
-
+    endpoint:
+      {
+        "Fn::Join":
+          [
+            "",
+            [
+              "https://",
+              { "Fn::GetAtt": "CloudFrontEndpoint.DomainName" },
+              "/",
+            ],
+          ],
+      }
+  apiKeys:
+    - integrationsKey
 provider:
   name: aws
-  runtime: nodejs4.3
+  runtime: nodejs8.10
   stage: dev
   region: us-east-1
-
-  # We need to lockdown the apigateway, so we can control who can use the api
-  apiKeys:
-    - app-api-key
-
+  memorySize: 3008 # in MB, default is 1024. The more memory, the faster the CPU
+  # environment:
+  #   SCREENSHOT_TIMEOUT: 10
   # We need to give the lambda functions access to list and write to our bucket, it needs:
   # - to be able to 'list' the bucket
   # - to be able to upload a file (PutObject)
@@ -34,26 +42,26 @@ provider:
         - "arn:aws:s3:::${self:custom.bucket_name}/*"
 
 functions:
-  takeScreenshot:
-    handler: handler.take_screenshot
-    timeout: 15
-    events:
-      - http:
-          path: screenshots
-          method: post
-          # Marking the function as private will require an api-key
-          private: true
+  # takeScreenshot:
+  #   handler: handler.take_screenshot
+  #   timeout: 15
+  #   events:
+  #     - http:
+  #         path: screenshots
+  #         method: post
+  #         # Marking the function as private will require an api-key
+  #         private: true
 
-          # The url parameter is mandatory
-          request:
-            parameters:
-              # headers:
-              #   foo: false
-              #   bar: true
-              querystrings:
-                url: true
-              # paths:
-              #   bar: false
+  #         # The url parameter is mandatory
+  #         request:
+  #           parameters:
+  #             # headers:
+  #             #   foo: false
+  #             #   bar: true
+  #             querystrings:
+  #               url: true
+  #             # paths:
+  #             #   bar: false
 
   listScreenshots:
     handler: handler.list_screenshots
@@ -69,6 +77,7 @@ functions:
                 url: true
 
   createThumbnails:
+    timeout: 120
     handler: handler.create_thumbnails
     events:
       - s3:
@@ -82,7 +91,7 @@ resources:
       Value: ${self:custom.bucket_name}
     CloudFrontUrl:
       Description: "CloudFront url"
-      Value: {"Fn::GetAtt": "CloudFrontEndpoint.DomainName"}
+      Value: { "Fn::GetAtt": "CloudFrontEndpoint.DomainName" }
   Resources:
     # Create an endpoint for the S3 bucket in CloudFront
     CloudFrontEndpoint:
@@ -96,13 +105,13 @@ resources:
             ForwardedValues:
               QueryString: True
           Origins:
-            -
-              Id: ScreenshotBucketOrigin
+            - Id: ScreenshotBucketOrigin
               DomainName: ${self:custom.bucket_name}.s3.amazonaws.com
               CustomOriginConfig:
                 OriginProtocolPolicy: http-only
 
-
 plugins:
   - serverless-plugin-stage-variables
   - serverless-plugin-stack-outputs
+  - serverless-add-api-key
+  - serverless-offline
