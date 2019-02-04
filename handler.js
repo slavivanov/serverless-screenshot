@@ -1,8 +1,8 @@
-const exec = require('child_process').exec;
-const crypto = require('crypto');
-const fs = require('fs');
-const AWS = require('aws-sdk');
-const validUrl = require('valid-url');
+const exec = require("child_process").exec;
+const crypto = require("crypto");
+const fs = require("fs");
+const AWS = require("aws-sdk");
+const validUrl = require("valid-url");
 
 // overall constants
 // const screenWidth = 1280;
@@ -79,10 +79,10 @@ module.exports.list_screenshots = (event, context, cb) => {
   }
 
   const targetHash = crypto
-    .createHash('md5')
+    .createHash("md5")
     .update(targetUrl)
-    .digest('hex');
-  const targetBucket = 'encharge-site-screenshot-production'; // event.stageVariables.bucketName;
+    .digest("hex");
+  const targetBucket = "encharge-site-screenshot-production"; // event.stageVariables.bucketName;
   const targetPath = `${targetHash}/`;
 
   const s3 = new AWS.S3();
@@ -90,7 +90,7 @@ module.exports.list_screenshots = (event, context, cb) => {
     {
       Bucket: targetBucket,
       Prefix: targetPath,
-      EncodingType: 'url',
+      EncodingType: "url"
     },
     (err, data) => {
       if (err) {
@@ -98,14 +98,14 @@ module.exports.list_screenshots = (event, context, cb) => {
       } else {
         const urls = {};
         // for each key, get the image width and add it to the output object
-        data.Contents.forEach((content) => {
-          const parts = content.Key.split('/');
-          const size = parts.pop().split('.')[0];
+        data.Contents.forEach(content => {
+          const parts = content.Key.split("/");
+          const size = parts.pop().split(".")[0];
           urls[size] = `${event.stageVariables.endpoint}${content.Key}`;
         });
         const response = {
           statusCode: 200,
-          body: JSON.stringify(urls),
+          body: JSON.stringify(urls)
         };
         cb(null, response);
       }
@@ -122,44 +122,46 @@ module.exports.create_thumbnails = (event, context, cb) => {
     // '800x600': `-crop ${screenWidth}x${screenHeight}+0x0 -thumbnail 800x600`,
     // '1024x768': `-crop ${screenWidth}x${screenHeight}+0x0 -thumbnail 1024x768`,
     // 100: '-thumbnail 100x',
-    200: '-thumbnail 200x',
-    320: '-thumbnail 320x',
-    // 400: '-thumbnail 400x',
-    // 640: '-thumbnail 640x',
+    // 200: '-thumbnail 200x',
+    // 320: '-thumbnail 320x',
+    400: "-thumbnail 400x",
+    640: "-thumbnail 640x"
     // 800: '-thumbnail 800x',
     // 1024: '-thumbnail 1024x',
   };
   const record = event.Records[0];
 
   // we only want to deal with originals
-  if (record.s3.object.key.indexOf('original.png') === -1) {
-    console.warn('Not an original, skipping');
-    cb('Not an original, skipping');
+  if (record.s3.object.key.indexOf("original.png") === -1) {
+    console.warn("Not an original, skipping");
+    cb("Not an original, skipping");
     return false;
   }
 
   // get the prefix, and get the hash
-  const prefix = record.s3.object.key.split('/')[0];
+  const prefix = record.s3.object.key.split("/")[0];
   const hash = prefix;
 
   // download the original to disk
   const s3 = new AWS.S3();
-  const sourcePath = '/tmp/original.png';
+  const sourcePath = "/tmp/original.png";
   const targetStream = fs.createWriteStream(sourcePath);
   const fileStream = s3
     .getObject({
       Bucket: record.s3.bucket.name,
-      Key: record.s3.object.key,
+      Key: record.s3.object.key
     })
     .createReadStream();
   fileStream.pipe(targetStream);
 
   // when file is downloaded, start processing
-  fileStream.on('end', () => {
+  fileStream.on("end", () => {
     // resize to every configured size
-    Object.keys(widths).forEach((size) => {
-      const cmd = `convert ${widths[size]} ${sourcePath} /tmp/${hash}-${size}.png`;
-      console.log('Running ', cmd);
+    Object.keys(widths).forEach(size => {
+      const cmd = `convert ${
+        widths[size]
+      } ${sourcePath} /tmp/${hash}-${size}.png`;
+      console.log("Running ", cmd);
 
       exec(cmd, (error, stdout, stderr) => {
         if (error) {
@@ -172,11 +174,11 @@ module.exports.create_thumbnails = (event, context, cb) => {
           const fileBuffer = fs.readFileSync(`/tmp/${hash}-${size}.png`);
           s3.putObject(
             {
-              ACL: 'public-read',
+              ACL: "public-read",
               Key: `${prefix}/${size}.png`,
               Body: fileBuffer,
               Bucket: record.s3.bucket.name,
-              ContentType: 'image/png',
+              ContentType: "image/png"
             },
             (err, data) => {
               if (err) {
