@@ -2,7 +2,7 @@ service: lambda-screenshots
 
 custom:
   # change this, so it's unique for your setup
-  bucket_name: encharge-site-screenshot-${opt:stage,self:provider.stage}
+  bucket_name: encharge-screenshot-${opt:stage,self:provider.stage}
 
   stageVariables:
     bucketName: ${self:custom.bucket_name}
