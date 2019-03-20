@@ -2,6 +2,16 @@
 
 This service is currently used only for resizing/listing the images. The actual scraping of the site screenshot is done in another lambda (using chrome). Thus, all POST calls to the endpoint below won't work.
 
+## Deployment
+1. Run `npm run deploy`. This creates S3 bucket and cloudfront distribution. 
+2. Create a CNAME record for screenshots.encharge.io to the cloudfront distribution. 
+3. Add the cloudflare origin certificate to the cloudfront distrubution using AWS certificate manager.
+4. Profit
+
+
+
+# ORIGINAL README FOLLOWS
+
 # serverless-screenshot
 
 Serverless Screenshot Service

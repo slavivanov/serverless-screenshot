@@ -98,6 +98,8 @@ resources:
       Type: AWS::CloudFront::Distribution
       Properties:
         DistributionConfig:
+          Aliases: 
+            - screenshots.encharge.io
           Enabled: True
           DefaultCacheBehavior:
             TargetOriginId: ScreenshotBucketOrigin
